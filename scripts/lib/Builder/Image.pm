@@ -6,14 +6,6 @@ use Carp;
 use Mojo::Promise;
 use feature "signatures";
 
-#use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-#
-#$VERSION = 1.00;
-#@ISA       = qw(Exporter);
-#@EXPORT    = qw();
-#@EXPORT_OK = ();
-#%EXPORT_TAGS = ();
-
 
 has "name" => (
     is       => "rw",
