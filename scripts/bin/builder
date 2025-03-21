@@ -1,0 +1,162 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Data::Dumper;
+use Getopt::Long;
+use Carp;
+use File::chdir;
+
+use File::Basename qw(dirname);
+use FindBin qw($Bin);
+use lib dirname($Bin) . "/./lib";
+use Builder::Image;
+use Cwd qw();
+
+my $path = Cwd::cwd();
+
+$CWD = $path . "/packer";
+
+my $build_php = 0;
+my $build_node = 0;
+my $build_jenkins = 0;
+my $build_all = 0;
+
+
+my $options = <<END;
+
+Options:
+-p : Build and push php images.
+-n : Build and push node images.
+-j : Build and push jenkins.
+-all:  Build and push all.
+END
+
+my $heading = <<END;
+
+ ███████████  █████  █████ █████ █████       ██████████   ██████████
+░░███░░░░░███░░███  ░░███ ░░███ ░░███       ░░███░░░░███ ░░███░░░░░█
+ ░███    ░███ ░███   ░███  ░███  ░███        ░███   ░░███ ░███  █ ░
+ ░██████████  ░███   ░███  ░███  ░███        ░███    ░███ ░██████
+ ░███░░░░░███ ░███   ░███  ░███  ░███        ░███    ░███ ░███░░█
+ ░███    ░███ ░███   ░███  ░███  ░███      █ ░███    ███  ░███ ░   █
+ ███████████  ░░████████   █████ ███████████ ██████████   ██████████
+░░░░░░░░░░░    ░░░░░░░░   ░░░░░ ░░░░░░░░░░░ ░░░░░░░░░░   ░░░░░░░░░░
+
+
+
+ ███████████
+░░███░░░░░███
+ ░███    ░███
+ ░██████████
+ ░███░░░░░███
+ ░███    ░███
+ █████   █████
+░░░░░   ░░░░░                                                       
+
+END
+
+
+sub doBuild {
+    my @targets = @_;
+
+    for my $current (@targets) {
+        $current->build($path);
+    }
+}
+
+sub build_php() {
+
+    print "Building php...", "\n";
+
+    my $prod = Builder::Image->new(
+        name => "app-php-prod"
+    );
+
+    my $test = Builder::Image->new(
+        name => "app-php-test",
+        deps => [ $prod ]
+    );
+
+    my $dev = Builder::Image->new(
+        name => "app-php-dev",
+        deps => [ $test ]
+    );
+
+    my $devNode = Builder::Image->new(
+        name => "app-php-dev-wnode",
+        deps => [ $dev ]
+    );
+
+    my $testNode = Builder::Image->new(
+        name => "app-php-test-wnode",
+        deps => [ $prod ]
+    );
+
+    &doBuild($testNode, $devNode);
+}
+
+sub build_node() {
+    print "Building node...", "\n";
+
+    my $remix = Builder::Image->new(
+        name => "remix"
+    );
+
+    &doBuild($remix);
+}
+
+sub build_jenkins() {
+    print "Building jenkins...", "\n";
+
+    my $jenkins = Builder::Image->new(
+        name => "jenkins-gig"
+    );
+
+    &doBuild($jenkins);
+}
+
+my %actions = (
+    build_php     => \&build_php,
+    build_node    => \&build_node,
+    build_jenkins => \&build_jenkins,
+    build_all     => \&build_all
+);
+
+GetOptions(
+    "p"   => \$build_php,
+    "n"   => \$build_node,
+    "j"   => \$build_jenkins,
+    "all" => \$build_all,
+);
+
+my $call = "";
+
+if ($build_php) {
+    $call = "build_php";
+}
+elsif ($build_node) {
+    $call = "build_node";
+}
+elsif ($build_jenkins) {
+    $call = "build_jenkins";
+}
+
+print $heading, "\n";
+
+if ($build_all) {
+    print "Building all...", "\n";
+    &build_php();
+    &build_node();
+    &build_jenkins();
+    print "  🎂  All done. "
+}
+elsif (defined($actions{$call})) {
+    $actions{$call}->();
+}
+else {
+    print "\nYou need to tell me what to do...\n";
+    print $options;
+}
+
+exit 0;
