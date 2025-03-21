@@ -51,6 +51,7 @@ sub deferRun {
     my @output = <$fh>;
     close $fh;
     my $success = @output[@output - 1] =~ /Imported Docker image/;
+    
     unless ($success) {
         $promise->reject("  ☠️  Build failure: " . $self->name);
     }
